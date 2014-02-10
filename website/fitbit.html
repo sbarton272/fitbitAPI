@@ -2,7 +2,8 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <html>
-  <head>    
+  <head> 
+    <title> Spencer's Sleep </title>   
     <style>
 
       h1.title {
@@ -31,13 +32,13 @@
         fill: #000;
       }
     </style>
-    <script src="http://d3js.org/d3.v3.js"></script>
     <script type='text/javascript' src='../js/sheetsee.js'></script>
     <script type='text/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js'></script>
     <script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/tabletop.js/1.1.0/tabletop.min.js'></script>
+    <script src="http://d3js.org/d3.v3.js"></script>
   </head>
   <body>
-    <h1 class="title"> My Sleep from Fitbit </h1>
+    <h1 class="title"> Sleep from Fitbit </h1>
     <div id="chart"></div>
 
     <script type="text/javascript">
@@ -52,100 +53,102 @@
           weeks = ["1/20/14", "1/27/14", "2/3/14"];
 
       function min2HrMin(mins) {
-        if (mins == 0) {return '0hrs';}
+        if (mins == 0) {return '0h';}
         var hr = Math.floor(mins / 60),
             min = mins % 60,
             str = '';
-        str += (hr == 0)? '' : hr + 'h';
-        str += (min == 0)? '' : ' ' + min + 'm';
+        str += (hr == 0)? '' : hr + 'h ';
+        str += (min == 0)? '' : min + 'm';
         return str;
       }
 
       document.addEventListener('DOMContentLoaded', function() {
-       var gData
-       var URL = "0AvxPyQaL11lXdGJOV0VhREV2UzN5eXk5RzZWMUtkLVE"
-       Tabletop.init( { key: URL, callback: function(d) { console.log(d); }, simpleSheet: true } )
-      })
-
-
-      d3.tsv("totalSleepData.tsv",
-        function(d) {
-          return {
-            year:  +d.year,
-            month: +d.month,
-            day:   +d.day,
-            wkday: +d.wkday,
-            wknum: +d.wknum,
-            value: +d.totalSleep
-          };
-        },
-
-        function(error, data) {
-          var colorScale = d3.scale.quantile()
-              .domain([d3.min(data, function (d) { return d.value; }), d3.max(data, function (d) { return d.value; })])
-              .range(colors);
-
-          var svg = d3.select("#chart").append("svg")
-              .attr("width", width + margin.left + margin.right)
-              .attr("height", height + margin.top + margin.bottom)
-              .append("g")
-              .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-          var dayLabels = svg.selectAll(".dayLabel")
-              .data(days)
-              .enter().append("text")
-                .text(function (d) { return d; })
-                .attr("x", function (d, i) { return i * gridSize; })
-                .attr("y", 0)
-                .style("text-anchor", "middle")
-                .attr("transform", "translate(" + gridSize / 2 + ", -6)")
-                .attr("class", function (d, i) { return ((i >= 0 && i <= 4) ? "dayLabel mono axis axis-workday" : "dayLabel mono axis"); });
-
-          var weekLabels = svg.selectAll(".weekLabel")
-              .data(weeks)
-              .enter().append("text")
-                .text(function(d) { return d; })
-                .attr("x", 0)
-                .attr("y", function(d, i) { return i * gridSize; })
-                .style("text-anchor", "end")
-                .attr("transform", "translate(-8," + gridSize / 1.5 + ")")
-                .attr("class", "weekLabel mono axis axis-week");
-
-          var heatMap = svg.selectAll(".sleep")
-              .data(data)
-              .enter().append("rect")
-              .attr("x", function(d) { return (d.wkday) * gridSize; })
-              .attr("y", function(d) { return (d.wknum) * gridSize; })
-              .attr("rx", 5)
-              .attr("ry", 5)
-              .attr("class", "sleep bordered")
-              .attr("width", gridSize)
-              .attr("height", gridSize)
-              .style("fill", colors[0]);
-
-          heatMap.transition().duration(1000)
-              .style("fill", function(d) { return colorScale(d.value); });
-
-          heatMap.append("title").text(function(d) { return min2HrMin(d.value); });
-              
-          var legend = svg.selectAll(".legend")
-              .data([0].concat(colorScale.quantiles()), function(d) { console.log(d); return d; })
-              .enter().append("g")
-              .attr("class", "legend");
-
-          legend.append("rect")
-            .attr("x", function(d, i) { return legendElementWidth * i; })
-            .attr("y", height)
-            .attr("width", legendElementWidth)
-            .attr("height", gridSize / 2)
-            .style("fill", function(d, i) { return colors[i]; });
-
-          legend.append("text")
-            .attr("class", "mono")
-            .text(function(d) { return "≥ " + min2HrMin(Math.round(d)); })
-            .attr("x", function(d, i) { return legendElementWidth * i; })
-            .attr("y", height + gridSize);
+        var URL = "0AvxPyQaL11lXdGJOV0VhREV2UzN5eXk5RzZWMUtkLVE";
+        Tabletop.init( { key: URL, simpleSheet: true, callback: 
+            function(data) {
+              // convert all values to int on callback 
+              $.each(data, function(i, d) { 
+                data[i] = {
+                  year:  +d.year,
+                  month: +d.month,
+                  day:   +d.day,
+                  wkday: +d.wkday,
+                  wknum: +d.wknum,
+                  sleep: +d.sleep
+                }
+              }); 
+              // call remainder of display
+              heatMapDisplay(data);
+            } 
+        });
       });
+
+      function heatMapDisplay(data) {
+        var colorScale = d3.scale.quantile()
+            .domain([d3.min(data, function (d) { return d.sleep; }), d3.max(data, function (d) { return d.sleep; })])
+            .range(colors);
+
+        var svg = d3.select("#chart").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        var dayLabels = svg.selectAll(".dayLabel")
+            .data(days)
+            .enter().append("text")
+              .text(function (d) { return d; })
+              .attr("x", function (d, i) { return i * gridSize; })
+              .attr("y", 0)
+              .style("text-anchor", "middle")
+              .attr("transform", "translate(" + gridSize / 2 + ", -6)")
+              .attr("class", function (d, i) { return ((i >= 0 && i <= 4) ? "dayLabel mono axis axis-workday" : "dayLabel mono axis"); });
+
+        var weekLabels = svg.selectAll(".weekLabel")
+            .data(weeks)
+            .enter().append("text")
+              .text(function(d) { return d; })
+              .attr("x", 0)
+              .attr("y", function(d, i) { return i * gridSize; })
+              .style("text-anchor", "end")
+              .attr("transform", "translate(-8," + gridSize / 1.5 + ")")
+              .attr("class", "weekLabel mono axis axis-week");
+
+        var heatMap = svg.selectAll(".sleep")
+            .data(data)
+            .enter().append("rect")
+            .attr("x", function(d) { return (d.wkday) * gridSize; })
+            .attr("y", function(d) { return (d.wknum) * gridSize; })
+            .attr("rx", 5)
+            .attr("ry", 5)
+            .attr("class", "sleep bordered")
+            .attr("width", gridSize)
+            .attr("height", gridSize)
+            .style("fill", colors[0]);
+
+        heatMap.transition().duration(1000)
+            .style("fill", function(d) { return colorScale(d.sleep); });
+
+        heatMap.append("title").text(function(d) { return min2HrMin(d.sleep); });
+            
+        var legend = svg.selectAll(".legend")
+            .data([0].concat(colorScale.quantiles()), function(d) { return d; })
+            .enter().append("g")
+            .attr("class", "legend");
+
+        legend.append("rect")
+          .attr("x", function(d, i) { return legendElementWidth * i; })
+          .attr("y", height)
+          .attr("width", legendElementWidth)
+          .attr("height", gridSize / 2)
+          .style("fill", function(d, i) { return colors[i]; });
+
+        legend.append("text")
+          .attr("class", "mono")
+          .text(function(d) { return "≥ " + min2HrMin(Math.round(d)); })
+          .attr("x", function(d, i) { return legendElementWidth * i; })
+          .attr("y", height + gridSize);
+      }
 
     </script>
   </body>
