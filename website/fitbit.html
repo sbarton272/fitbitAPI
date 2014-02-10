@@ -4,6 +4,14 @@
 <html>
   <head>    
     <style>
+
+      h1.title {
+        margin-left: 50px;
+        font-size: 20pt;
+        font-family: Consolas, courier;
+        fill: #aaa;
+      }
+
       rect.bordered {
         stroke: #E6E6E6;
         stroke-width:2px;   
@@ -15,29 +23,40 @@
         fill: #aaa;
       }
 
-      text.axis-workweek {
+      text.axis-workday {
         fill: #000;
       }
 
-      text.axis-worktime {
+      text.axis-week {
         fill: #000;
       }
     </style>
     <script src="http://d3js.org/d3.v3.js"></script>
   </head>
   <body>
+    <h1 class="title"> My Sleep from Fitbit </h1>
     <div id="chart"></div>
 
     <script type="text/javascript">
       var margin = { top: 50, right: 0, bottom: 100, left: 100 },
           width = 960 - margin.left - margin.right,
           height = 430 - margin.top - margin.bottom,
-          gridSize = Math.floor(width / 12),
-          legendElementWidth = gridSize*2,
+          gridSize = Math.floor(width / 10),
+          legendElementWidth = 7*gridSize/9,
           buckets = 9,
           colors = ["#ffffd9","#edf8b1","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#253494","#081d58"], // alternatively colorbrewer.YlGnBu[9]
           days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
           weeks = ["1/20/14", "1/27/14", "2/3/14"];
+
+      function min2HrMin(mins) {
+        if (mins == 0) {return '0hrs';}
+        var hr = Math.floor(mins / 60),
+            min = mins % 60,
+            str = '';
+        str += (hr == 0)? '' : hr + 'h';
+        str += (min == 0)? '' : ' ' + min + 'm';
+        return str;
+      }
 
 
       d3.tsv("totalSleepData.tsv",
@@ -54,7 +73,7 @@
 
         function(error, data) {
           var colorScale = d3.scale.quantile()
-              .domain([0, buckets - 1, d3.max(data, function (d) { return d.value; })])
+              .domain([d3.min(data, function (d) { return d.value; }), d3.max(data, function (d) { return d.value; })])
               .range(colors);
 
           var svg = d3.select("#chart").append("svg")
@@ -71,7 +90,7 @@
                 .attr("y", 0)
                 .style("text-anchor", "middle")
                 .attr("transform", "translate(" + gridSize / 2 + ", -6)")
-                .attr("class", function (d, i) { return ((i >= 0 && i <= 4) ? "dayLabel mono axis axis-workweek" : "dayLabel mono axis"); });
+                .attr("class", function (d, i) { return ((i >= 0 && i <= 4) ? "dayLabel mono axis axis-workday" : "dayLabel mono axis"); });
 
           var weekLabels = svg.selectAll(".weekLabel")
               .data(weeks)
@@ -80,17 +99,17 @@
                 .attr("x", 0)
                 .attr("y", function(d, i) { return i * gridSize; })
                 .style("text-anchor", "end")
-                .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
-                .attr("class", function(d, i) { return ((i >= 7 && i <= 16) ? "weekLabel mono axis axis-worktime" : "weekLabel mono axis"); });
+                .attr("transform", "translate(-8," + gridSize / 1.5 + ")")
+                .attr("class", "weekLabel mono axis axis-week");
 
-          var heatMap = svg.selectAll(".hour")
+          var heatMap = svg.selectAll(".sleep")
               .data(data)
               .enter().append("rect")
               .attr("x", function(d) { return (d.wkday) * gridSize; })
               .attr("y", function(d) { return (d.wknum) * gridSize; })
-              .attr("rx", 4)
-              .attr("ry", 4)
-              .attr("class", "hour bordered")
+              .attr("rx", 5)
+              .attr("ry", 5)
+              .attr("class", "sleep bordered")
               .attr("width", gridSize)
               .attr("height", gridSize)
               .style("fill", colors[0]);
@@ -98,10 +117,10 @@
           heatMap.transition().duration(1000)
               .style("fill", function(d) { return colorScale(d.value); });
 
-          heatMap.append("title").text(function(d) { return d.value; });
+          heatMap.append("title").text(function(d) { return min2HrMin(d.value); });
               
           var legend = svg.selectAll(".legend")
-              .data([0].concat(colorScale.quantiles()), function(d) { return d; })
+              .data([0].concat(colorScale.quantiles()), function(d) { console.log(d); return d; })
               .enter().append("g")
               .attr("class", "legend");
 
@@ -114,7 +133,7 @@
 
           legend.append("text")
             .attr("class", "mono")
-            .text(function(d) { return "≥ " + Math.round(d); })
+            .text(function(d) { return "≥ " + min2HrMin(Math.round(d)); })
             .attr("x", function(d, i) { return legendElementWidth * i; })
             .attr("y", height + gridSize);
       });
