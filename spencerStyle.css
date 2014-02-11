@@ -1,0 +1,25 @@
+h1.title {
+  margin-left: 50px;
+  font-size: 20pt;
+  font-family: Consolas, courier;
+  fill: #aaa;
+}
+
+rect.bordered {
+  stroke: #E6E6E6;
+  stroke-width:2px;   
+}
+
+text.mono {
+  font-size: 9pt;
+  font-family: Consolas, courier;
+  fill: #aaa;
+}
+
+text.axis-workday {
+  fill: #000;
+}
+
+text.axis-week {
+  fill: #000;
+}
